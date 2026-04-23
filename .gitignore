@@ -39,3 +39,13 @@
 
 # debug information files
 *.dwo
+
+# Python/IDE artifacts
+.venv/
+.vscode/
+__pycache__/
+*.pyc
+
+# Model and archive files
+*.pt
+*.zip
