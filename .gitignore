@@ -48,4 +48,5 @@ __pycache__/
 
 # Model and archive files
 *.pt
+!Mednano_AI_Doctor.pt
 *.zip
