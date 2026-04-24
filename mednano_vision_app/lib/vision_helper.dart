@@ -20,64 +20,63 @@ class VisionHelper {
     }
 
     try {
-      // قراءة الصورة
       final imageBytes = await imageFile.readAsBytes();
       img.Image? image = img.decodeImage(imageBytes);
 
-      if (image == null) {
-        return 'خطأ في قراءة الصورة';
-      }
+      if (image == null) return 'خطأ في قراءة الصورة';
 
-      // تغيير حجم الصورة إلى 224x224 (افتراضي لمعظم الموديلات)
+      // 1. تغيير الحجم للـ Input بتاع الموديل
       img.Image resizedImage = img.copyResize(image, width: 224, height: 224);
 
-      // تحويل إلى RGB إذا لزم الأمر
-      if (resizedImage.numChannels == 4) {
-        resizedImage = img.copyResize(resizedImage, width: 224, height: 224);
-      }
-
-      // تحويل إلى tensor
+      // 2. تحويل الصورة لمصفوفة (Normalization)
       var input = List.generate(
         1,
         (i) => List.generate(
           224,
           (y) => List.generate(
             224,
-            (x) => List.generate(
-              3,
-              (c) => resizedImage.getPixel(x, y)[c] / 255.0, // normalize
-            ),
+            (x) {
+              final pixel = resizedImage.getPixel(x, y);
+              // تقسيم على 255 لتحويل القيم لـ 0.0 - 1.0
+              return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
+            },
           ),
         ),
       );
 
-      // إعداد output
+      // 3. إعداد مكان النتيجة (الـ 7 أصناف بتوعنا)
       var outputData = List.filled(1 * 7, 0.0).reshape([1, 7]);
 
-      // تشغيل الموديل
-      _interpreter!.run(input, output);
+      // 4. تشغيل الموديل (تأكد إننا بنستخدم outputData مش output)
+      _interpreter!.run(input, outputData);
 
-      // الحصول على النتيجة (أعلى احتمالية)
-      List<double> probabilities = output[0];
-      int maxIndex = probabilities.indexOf(probabilities.reduce((a, b) => a > b ? a : b));
+      // 5. استخراج النتيجة
+      List<double> probabilities = List<double>.from(outputData[0]);
+      int maxIndex = 0;
+      double maxProb = -1.0;
+      
+      for (int i = 0; i < probabilities.length; i++) {
+        if (probabilities[i] > maxProb) {
+          maxProb = probabilities[i];
+          maxIndex = i;
+        }
+      }
 
-      // قائمة الأمراض (مثال، يجب استبدالها بالحقيقية)
+      // 6. قائمة الـ 7 أمراض الحقيقية الخاصة بموديل HAM10000
       List<String> diseases = [
-        'جلد طبيعي',
-        'إكزيما',
-        'صدفية',
-        'حساسية',
-        'سرطان الجلد',
-        // أضف المزيد حسب الموديل
+        'تقران سفعي (Actinic Keratosis)',
+        'سرطان الخلايا القاعدة (Basal Cell Carcinoma)',
+        'آفات حميدة (Benign Keratosis)',
+        'ورم ليفي جلدي (Dermatofibroma)',
+        'شامات صبغية (Melanocytic Nevi)',
+        'ميلانوما (Melanoma)',
+        'آفات وعائية (Vascular lesions)'
       ];
 
-      if (maxIndex < diseases.length) {
-        return 'تشخيص محتمل: ${diseases[maxIndex]}';
-      } else {
-        return 'تشخيص: حالة غير معروفة';
-      }
+      double confidence = maxProb * 100;
+      return 'التشخيص: ${diseases[maxIndex]}\nالدقة: ${confidence.toStringAsFixed(1)}%';
+
     } catch (e) {
       return 'خطأ في المعالجة: $e';
     }
   }
-}
