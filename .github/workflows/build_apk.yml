@@ -35,7 +35,7 @@ jobs:
           
           # 3. التحميل والبناء
           cd clean_app
-          flutter pub get
+          flutter pub upgrade
           flutter build apk --release
 
       - name: 📦 رفع الـ APK للتحميل
