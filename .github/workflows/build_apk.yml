@@ -1,7 +1,7 @@
 name: Build Mednano APK
 
 on:
-  workflow_dispatch: # الزرار السحري للتشغيل اليدوي
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,7 +11,7 @@ jobs:
       - name: 📥 جلب الكود
         uses: actions/checkout@v4
 
-      - name: ☕ إعداد بيئة Java
+      - name: ☕ إعداد بيئة Java 17
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
@@ -22,9 +22,19 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: ⚙️ تحميل المكتبات وبناء الـ APK
+      - name: 🏗️ البناء بنظام المشروع النظيف
         run: |
-          cd mednano_vision_app
+          # 1. إنشاء مشروع أندرويد بكر تماماً
+          flutter create --platforms=android clean_app
+          
+          # 2. نقل ملفاتك الذكية للمشروع الجديد (العفش في الشقة الجديدة)
+          rm -rf clean_app/lib
+          cp -r mednano_vision_app/lib clean_app/lib
+          cp -r mednano_vision_app/assets clean_app/assets
+          cp mednano_vision_app/pubspec.yaml clean_app/pubspec.yaml
+          
+          # 3. التحميل والبناء
+          cd clean_app
           flutter pub get
           flutter build apk --release
 
@@ -32,4 +42,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Mednano-App
-          path: mednano_vision_app/build/app/outputs/flutter-apk/app-release.apk
+          path: clean_app/build/app/outputs/flutter-apk/app-release.apk
