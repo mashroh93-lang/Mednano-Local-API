@@ -22,24 +22,24 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: 🏗️ البناء بنظام المشروع النظيف
+      - name: 🏗️ بناء Mednano AI بنظام نظيف
         run: |
-          # 1. إنشاء مشروع أندرويد بكر تماماً
-          flutter create --platforms=android clean_app
+          # 1. إنشاء المشروع بالاسم الجديد
+          flutter create --platforms=android mednano_ai
           
-          # 2. نقل ملفاتك الذكية للمشروع الجديد (العفش في الشقة الجديدة)
-          rm -rf clean_app/lib
-          cp -r mednano_vision_app/lib clean_app/lib
-          cp -r mednano_vision_app/assets clean_app/assets
-          cp mednano_vision_app/pubspec.yaml clean_app/pubspec.yaml
+          # 2. نقل ملفاتك للمشروع الجديد
+          rm -rf mednano_ai/lib
+          cp -r mednano_vision_app/lib mednano_ai/lib
+          cp -r mednano_vision_app/assets mednano_ai/assets
+          cp mednano_vision_app/pubspec.yaml mednano_ai/pubspec.yaml
           
-          # 3. التحميل والبناء
-          cd clean_app
+          # 3. بناء الـ APK
+          cd mednano_ai
           flutter pub upgrade
           flutter build apk --release
 
       - name: 📦 رفع الـ APK للتحميل
         uses: actions/upload-artifact@v4
         with:
-          name: Mednano-App
-          path: clean_app/build/app/outputs/flutter-apk/app-release.apk
+          name: Mednano-AI-App
+          path: mednano_ai/build/app/outputs/flutter-apk/app-release.apk
