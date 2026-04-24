@@ -5,30 +5,32 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 class VisionHelper {
   Interpreter? _interpreter;
 
+  // تحميل الموديل من الـ Assets
   Future<void> loadModel() async {
     try {
       _interpreter = await Interpreter.fromAsset('assets/mednano_vision.tflite');
-      print('Model loaded successfully');
+      print('تم تحميل الموديل بنجاح ✅');
     } catch (e) {
-      print('Error loading model: $e');
+      print('خطأ في تحميل الموديل: $e');
     }
   }
 
   Future<String> predictImage(File imageFile) async {
     if (_interpreter == null) {
-      return 'الموديل غير محمل';
+      return 'الموديل غير محمل.. جاري المحاولة مرة أخرى';
     }
 
     try {
+      // 1. قراءة وتحليل الصورة
       final imageBytes = await imageFile.readAsBytes();
       img.Image? image = img.decodeImage(imageBytes);
 
-      if (image == null) return 'خطأ في قراءة الصورة';
+      if (image == null) return 'خطأ في قراءة الصورة ❌';
 
-      // 1. تغيير الحجم للـ Input بتاع الموديل
+      // 2. تحويل الحجم ليتوافق مع الموديل (224x224)
       img.Image resizedImage = img.copyResize(image, width: 224, height: 224);
 
-      // 2. تحويل الصورة لمصفوفة (Normalization)
+      // 3. تحويل بكسلات الصورة لمصفوفة Float32 (Normalization)
       var input = List.generate(
         1,
         (i) => List.generate(
@@ -37,20 +39,20 @@ class VisionHelper {
             224,
             (x) {
               final pixel = resizedImage.getPixel(x, y);
-              // تقسيم على 255 لتحويل القيم لـ 0.0 - 1.0
+              // استخراج قيم R, G, B وتقسيمها على 255
               return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
             },
           ),
         ),
       );
 
-      // 3. إعداد مكان النتيجة (الـ 7 أصناف بتوعنا)
+      // 4. إعداد مكان النتيجة (7 أصناف طبية)
       var outputData = List.filled(1 * 7, 0.0).reshape([1, 7]);
 
-      // 4. تشغيل الموديل (تأكد إننا بنستخدم outputData مش output)
+      // 5. تشغيل العقل البصري
       _interpreter!.run(input, outputData);
 
-      // 5. استخراج النتيجة
+      // 6. البحث عن أعلى احتمالية من النتائج السبعة
       List<double> probabilities = List<double>.from(outputData[0]);
       int maxIndex = 0;
       double maxProb = -1.0;
@@ -62,7 +64,7 @@ class VisionHelper {
         }
       }
 
-      // 6. قائمة الـ 7 أمراض الحقيقية الخاصة بموديل HAM10000
+      // قائمة التشخيصات الخاصة بموديل HAM10000
       List<String> diseases = [
         'تقران سفعي (Actinic Keratosis)',
         'سرطان الخلايا القاعدة (Basal Cell Carcinoma)',
@@ -74,9 +76,12 @@ class VisionHelper {
       ];
 
       double confidence = maxProb * 100;
-      return 'التشخيص: ${diseases[maxIndex]}\nالدقة: ${confidence.toStringAsFixed(1)}%';
+      
+      // النتيجة النهائية تظهر للمستخدم
+      return 'التشخيص المحتمل: ${diseases[maxIndex]}\nدقة الفحص: ${confidence.toStringAsFixed(1)}%';
 
     } catch (e) {
-      return 'خطأ في المعالجة: $e';
+      return 'خطأ تقني في المعالجة: $e';
     }
   }
+} 
