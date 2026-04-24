@@ -52,7 +52,7 @@ class VisionHelper {
       );
 
       // إعداد output
-      var output = List.filled(1 * 1000, 0.0).reshape([1, 1000]); // افتراض 1000 class
+      var outputData = List.filled(1 * 7, 0.0).reshape([1, 7]);
 
       // تشغيل الموديل
       _interpreter!.run(input, output);
