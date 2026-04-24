@@ -1,150 +1,155 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'vision_helper.dart'; // استدعاء العقل البصري بتاعنا
+import 'vision_helper.dart';
+import 'download_service.dart';
 
 void main() {
-  runApp(const MednanoApp());
+  runApp(const MednanoAI());
 }
 
-class MednanoApp extends StatelessWidget {
-  const MednanoApp({super.key});
+class MednanoAI extends StatelessWidget {
+  const MednanoAI({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Mednano AI',
       debugShowCheckedModeBanner: false,
-      title: 'Mednano Vision',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      home: const VisionScreen(),
+      home: const HomeScreen(),
     );
   }
 }
 
-class VisionScreen extends StatefulWidget {
-  const VisionScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<VisionScreen> createState() => _VisionScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _VisionScreenState extends State<VisionScreen> {
-  // تعريف العين وأداة سحب الصور
+class _HomeScreenState extends State<HomeScreen> {
   final VisionHelper _visionHelper = VisionHelper();
-  final ImagePicker _picker = ImagePicker();
+  final DownloadService _downloadService = DownloadService();
   
-  File? _selectedImage;
-  String _diagnosisResult = "جاهز لفحص الجلد... اضغط على الكاميرا";
+  bool _isModelReady = false;
+  double _downloadProgress = 0.0;
+  bool _isDownloading = false;
+  String _statusMessage = "جاري الفحص...";
 
   @override
   void initState() {
     super.initState();
-    // تشغيل العين أول ما الشاشة تفتح عشان تكون جاهزة في الذاكرة
-    _visionHelper.loadModel();
+    _checkStatus();
   }
 
-  // دالة فتح الكاميرا أو الاستوديو
-  Future<void> _pickImage(ImageSource source) async {
-    final XFile? pickedFile = await _picker.pickImage(source: source);
+  // الفحص الذكي: هل العقل موجود في الذاكرة؟
+  Future<void> _checkStatus() async {
+    bool downloaded = await _downloadService.isModelDownloaded();
+    await _visionHelper.loadModel(); // تحميل موديل الجلد (الصغير) دايماً
     
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-        _diagnosisResult = "جاري الفحص الدقيق... ⏳";
-      });
+    setState(() {
+      _isModelReady = downloaded;
+      _statusMessage = downloaded ? "النظام جاهز" : "العقل اللغوي غير مفعل";
+    });
+  }
 
-      // إرسال الصورة للعين والانتظار لأجزاء من الثانية
-      String result = await _visionHelper.predictImage(_selectedImage!);
-      
+  // عملية التحميل (بتحصل مرة واحدة في العمر)
+  Future<void> _startDownload() async {
+    setState(() {
+      _isDownloading = true;
+      _statusMessage = "جاري تحميل العقل الطبي (1.24 جيجا)...";
+    });
+
+    await _downloadService.downloadModel(onProgress: (progress) {
       setState(() {
-        _diagnosisResult = result;
+        _downloadProgress = progress;
       });
-    }
+    });
+
+    setState(() {
+      _isDownloading = false;
+      _isModelReady = true;
+      _statusMessage = "تم التفعيل بنجاح ✅";
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mednano - فحص الجلد 👁️', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // مربع عرض الصورة الملقطة
-              Container(
-                height: 300,
-                width: 300,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  border: Border.all(color: Colors.teal, width: 3),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2)
-                  ]
-                ),
-                child: _selectedImage == null
-                    ? const Icon(Icons.health_and_safety_outlined, size: 100, color: Colors.teal)
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(17),
-                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                      ),
-              ),
-              const SizedBox(height: 40),
-              
-              // عرض نتيجة التشخيص البصري
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  _diagnosisResult,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 22, 
-                    fontWeight: FontWeight.bold, 
-                    color: Colors.black87,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 50),
-              
-              // زراير التحكم (كاميرا / استوديو)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      appBar: AppBar(title: const Text("Mednano AI 🩺"), centerTitle: true),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // أيقونة الحالة
+            Icon(
+              _isModelReady ? Icons.check_circle : Icons.info_outline,
+              size: 80,
+              color: _isModelReady ? Colors.green : Colors.orange,
+            ),
+            const SizedBox(height: 20),
+            Text(_statusMessage, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            
+            const SizedBox(height: 40),
+
+            // زرار فحص الجلد (شغال دايماً لأن حجمه صغير جوه التطبيق)
+            _buildMenuButton(
+              title: "فحص الجلد (Vision)",
+              icon: Icons.camera_alt,
+              color: Colors.blue,
+              onPressed: () {
+                // هنا نفتح الكاميرا والتشخيص اللي عملناه قبل كدة
+                showDialog(context: context, builder: (context) => AlertDialog(title: Text("قريباً"), content: Text("هنا نربط كود الكاميرا")));
+              },
+            ),
+
+            const SizedBox(height: 20),
+
+            // زرار الشات (بيعتمد على التحميل)
+            if (!_isModelReady && !_isDownloading)
+              _buildMenuButton(
+                title: "تفعيل المساعد الطبي (1.24GB)",
+                icon: Icons.download,
+                color: Colors.orange,
+                onPressed: _startDownload,
+              )
+            else if (_isDownloading)
+              Column(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera),
-                    label: const Text('لقطة جديدة', style: TextStyle(fontSize: 16)),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.teal,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('من المعرض', style: TextStyle(fontSize: 16)),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.blueGrey,
-                    ),
-                  ),
+                  LinearProgressIndicator(value: _downloadProgress),
+                  const SizedBox(height: 10),
+                  Text("${(_downloadProgress * 100).toStringAsFixed(1)}%"),
                 ],
+              )
+            else
+              _buildMenuButton(
+                title: "تحدث مع الطبيب (Chat)",
+                icon: Icons.chat,
+                color: Colors.green,
+                onPressed: () {
+                  // هنا نفتح واجهة الشات
+                },
               ),
-            ],
-          ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMenuButton({required String title, required IconData icon, required Color color, required VoidCallback onPressed}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(backgroundColor: color, foregroundColor: Colors.white),
+        onPressed: onPressed,
+        icon: Icon(icon),
+        label: Text(title, style: const TextStyle(fontSize: 16)),
       ),
     );
   }
