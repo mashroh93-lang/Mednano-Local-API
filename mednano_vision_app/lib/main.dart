@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'vision_helper.dart';
 import 'download_service.dart';
-import 'chat_screen.dart';
+import 'chat_screen.dart'; // 🔴 استدعاء شاشة الشات
 
 void main() => runApp(const MaterialApp(home: HomeScreen(), debugShowCheckedModeBanner: false));
 
@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isModelReady = exists);
   }
 
-  // كود تشغيل الكاميرا الفعلي 📸
+  // كود تشغيل الكاميرا
   Future<void> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 🔴 الدالة اللي كانت ناقصة لمعالجة التحميل من الإنترنت بشكل صحيح
+  // دالة التحميل
   Future<void> _startDownload() async {
     setState(() => _isDownloading = true);
     
@@ -79,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               const SizedBox(height: 50),
-              // كارت التشخيص والرؤية (Vision)
+              // كارت التشخيص والرؤية
               _buildModernCard(
                 title: "فحص الجلد الذكي",
                 child: Column(
@@ -110,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
               
               const SizedBox(height: 20),
 
-              // كارت المساعد الطبي (التحميل والاستيراد)
+              // كارت المساعد الطبي
               _buildModernCard(
                 title: "المساعد الطبي (AI Chat)",
                 child: _isModelReady 
@@ -144,7 +144,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // واجهة أزرار التحميل
   Widget _buildDownloadView() {
     return Column(
       children: [
@@ -161,16 +160,13 @@ class _HomeScreenState extends State<HomeScreen> {
         else
           Column(
             children: [
-              // زرار التحميل من الإنترنت
               ElevatedButton.icon(
-                onPressed: _startDownload, // الدالة شغالة تمام هنا
+                onPressed: _startDownload,
                 icon: const Icon(Icons.cloud_download), 
                 label: const Text("تحميل من الإنترنت (1.24GB)"),
                 style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 45)),
               ),
               const SizedBox(height: 10),
-              
-              // زرار الاستيراد من الهاتف
               OutlinedButton.icon(
                 onPressed: () async {
                   setState(() => _isDownloading = true);
@@ -193,14 +189,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 🔴 الشاشة اللي بتظهر لما العقل يكون مفعل وفيها الزرار المربوط صح
   Widget _buildSuccessView() {
     return Column(
       children: [
         const Icon(Icons.check_circle, color: Colors.green, size: 40),
         const Text("العقل الطبي مفعل وجاهز", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
-        
-        // 🔴 الزرار بعد ما ركبنا فيه مفتاح الشات
         ElevatedButton(
           onPressed: () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatScreen()));
@@ -210,3 +205,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
+}
