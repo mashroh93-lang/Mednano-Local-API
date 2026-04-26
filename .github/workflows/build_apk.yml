@@ -24,18 +24,23 @@ jobs:
 
       - name: 🏗️ بناء Mednano AI بنظام نظيف
         run: |
-          # 1. إنشاء المشروع بالاسم الجديد
           flutter create --platforms=android mednano_ai
-          
-          # 2. نقل ملفاتك للمشروع الجديد
           rm -rf mednano_ai/lib
           cp -r mednano_vision_app/lib mednano_ai/lib
           cp -r mednano_vision_app/assets mednano_ai/assets
           cp mednano_vision_app/pubspec.yaml mednano_ai/pubspec.yaml
-
+          
+          # 1. إضافة صلاحية الإنترنت
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <application/g' mednano_ai/android/app/src/main/AndroidManifest.xml
           
-          # 3. بناء الـ APK
+          # 2. زرع مكتبة PyTorch في قلب الأندرويد
+          sed -i 's/dependencies {/dependencies {\n    implementation "org.pytorch:pytorch_android_lite:1.13.0"/g' mednano_ai/android/app/build.gradle
+          
+          # 3. نقل كود الكوبري (MainActivity.kt) لمكانه السري
+          mkdir -p mednano_ai/android/app/src/main/kotlin/com/example/mednano_ai/
+          cp mednano_vision_app/MainActivity.kt mednano_ai/android/app/src/main/kotlin/com/example/mednano_ai/MainActivity.kt
+          
+          # 4. بناء الـ APK النهائي
           cd mednano_ai
           flutter pub upgrade
           flutter build apk --release
