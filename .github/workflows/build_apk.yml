@@ -32,6 +32,8 @@ jobs:
           cp -r mednano_vision_app/lib mednano_ai/lib
           cp -r mednano_vision_app/assets mednano_ai/assets
           cp mednano_vision_app/pubspec.yaml mednano_ai/pubspec.yaml
+
+          sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <application/g' mednano_ai/android/app/src/main/AndroidManifest.xml
           
           # 3. بناء الـ APK
           cd mednano_ai
