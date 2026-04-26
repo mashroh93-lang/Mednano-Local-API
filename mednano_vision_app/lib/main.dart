@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'vision_helper.dart';
 import 'download_service.dart';
+import 'chat_screen.dart';
 
 void main() => runApp(const MaterialApp(home: HomeScreen(), debugShowCheckedModeBanner: false));
 
@@ -198,8 +199,14 @@ class _HomeScreenState extends State<HomeScreen> {
         const Icon(Icons.check_circle, color: Colors.green, size: 40),
         const Text("العقل الطبي مفعل وجاهز", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
-        ElevatedButton(onPressed: () {}, child: const Text("فتح الدردشة الطبية")),
+        
+        // 🔴 الزرار بعد ما ركبنا فيه مفتاح الشات
+        ElevatedButton(
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatScreen()));
+          }, 
+          child: const Text("فتح الدردشة الطبية")
+        ),
       ],
     );
   }
-}
