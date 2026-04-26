@@ -1,156 +1,153 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'vision_helper.dart';
 import 'download_service.dart';
 
-void main() {
-  runApp(const MednanoAI());
-}
-
-class MednanoAI extends StatelessWidget {
-  const MednanoAI({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Mednano AI',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
-    );
-  }
-}
+void main() => runApp(const MaterialApp(home: HomeScreen(), debugShowCheckedModeBanner: false));
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final VisionHelper _visionHelper = VisionHelper();
-  final DownloadService _downloadService = DownloadService();
-  
+  final VisionHelper _vision = VisionHelper();
+  final DownloadService _download = DownloadService();
+  final ImagePicker _picker = ImagePicker();
+
+  File? _image;
+  String _result = "جاهز للفحص...";
   bool _isModelReady = false;
-  double _downloadProgress = 0.0;
   bool _isDownloading = false;
-  String _statusMessage = "جاري الفحص...";
+  double _progress = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _checkStatus();
+    _checkBrain();
+    _vision.loadModel();
   }
 
-  // الفحص الذكي: هل العقل موجود في الذاكرة؟
-  Future<void> _checkStatus() async {
-    bool downloaded = await _downloadService.isModelDownloaded();
-    await _visionHelper.loadModel(); // تحميل موديل الجلد (الصغير) دايماً
-    
-    setState(() {
-      _isModelReady = downloaded;
-      _statusMessage = downloaded ? "النظام جاهز" : "العقل اللغوي غير مفعل";
-    });
+  Future<void> _checkBrain() async {
+    bool exists = await _download.isModelDownloaded();
+    setState(() => _isModelReady = exists);
   }
 
-  // عملية التحميل (بتحصل مرة واحدة في العمر)
-  Future<void> _startDownload() async {
-    setState(() {
-      _isDownloading = true;
-      _statusMessage = "جاري تحميل العقل الطبي (1.24 جيجا)...";
-    });
-
-    await _downloadService.downloadModel(onProgress: (progress) {
+  // كود تشغيل الكاميرا الفعلي 📸
+  Future<void> _pickImage(ImageSource source) async {
+    final XFile? pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile != null) {
       setState(() {
-        _downloadProgress = progress;
+        _image = File(pickedFile.path);
+        _result = "جاري التحليل...";
       });
-    });
-
-    setState(() {
-      _isDownloading = false;
-      _isModelReady = true;
-      _statusMessage = "تم التفعيل بنجاح ✅";
-    });
+      String prediction = await _vision.predictImage(_image!);
+      setState(() => _result = prediction);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Mednano AI 🩺"), centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // أيقونة الحالة
-            Icon(
-              _isModelReady ? Icons.check_circle : Icons.info_outline,
-              size: 80,
-              color: _isModelReady ? Colors.green : Colors.orange,
-            ),
-            const SizedBox(height: 20),
-            Text(_statusMessage, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            
-            const SizedBox(height: 40),
-
-            // زرار فحص الجلد (شغال دايماً لأن حجمه صغير جوه التطبيق)
-            _buildMenuButton(
-              title: "فحص الجلد (Vision)",
-              icon: Icons.camera_alt,
-              color: Colors.blue,
-              onPressed: () {
-                // هنا نفتح الكاميرا والتشخيص اللي عملناه قبل كدة
-                showDialog(context: context, builder: (context) => AlertDialog(title: Text("قريباً"), content: Text("هنا نربط كود الكاميرا")));
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            // زرار الشات (بيعتمد على التحميل)
-            if (!_isModelReady && !_isDownloading)
-              _buildMenuButton(
-                title: "تفعيل المساعد الطبي (1.24GB)",
-                icon: Icons.download,
-                color: Colors.orange,
-                onPressed: _startDownload,
-              )
-            else if (_isDownloading)
-              Column(
-                children: [
-                  LinearProgressIndicator(value: _downloadProgress),
-                  const SizedBox(height: 10),
-                  Text("${(_downloadProgress * 100).toStringAsFixed(1)}%"),
-                ],
-              )
-            else
-              _buildMenuButton(
-                title: "تحدث مع الطبيب (Chat)",
-                icon: Icons.chat,
-                color: Colors.green,
-                onPressed: () {
-                  // هنا نفتح واجهة الشات
-                },
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // كارت التشخيص والروية (Vision)
+              _buildModernCard(
+                title: "فحص الجلد الذكي",
+                child: Column(
+                  children: [
+                    Container(
+                      height: 200, width: 200,
+                      decoration: BoxDecoration(
+                        color: Colors.white, border: Border.all(color: Colors.teal, width: 2),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: _image == null 
+                        ? const Icon(Icons.shield_moon, size: 80, color: Colors.teal) 
+                        : ClipRRect(borderRadius: BorderRadius.circular(13), child: Image.file(_image!, fit: BoxFit.cover)),
+                    ),
+                    const SizedBox(height: 15),
+                    Text(_result, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton.icon(onPressed: () => _pickImage(ImageSource.camera), icon: const Icon(Icons.camera), label: const Text("كاميرا")),
+                        ElevatedButton.icon(onPressed: () => _pickImage(ImageSource.gallery), icon: const Icon(Icons.photo), label: const Text("المعرض")),
+                      ],
+                    )
+                  ],
+                ),
               ),
-          ],
+              
+              const SizedBox(height: 20),
+
+              // كارت المساعد الطبي (التحميل)
+              _buildModernCard(
+                title: "المساعد الطبي (AI Chat)",
+                child: _isModelReady 
+                  ? _buildSuccessView() 
+                  : _buildDownloadView(),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMenuButton({required String title, required IconData icon, required Color color, required VoidCallback onPressed}) {
-    return SizedBox(
-      width: double.infinity,
-      height: 60,
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(backgroundColor: color, foregroundColor: Colors.white),
-        onPressed: onPressed,
-        icon: Icon(icon),
-        label: Text(title, style: const TextStyle(fontSize: 16)),
+  Widget _buildModernCard({required String title, required Widget child}) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.9,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(25),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, spreadRadius: 2)],
       ),
+      child: Column(
+        children: [
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal)),
+          const Divider(),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDownloadView() {
+    return Column(
+      children: [
+        const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 40),
+        const Text("نموذج الدردشة غير موجود محلياً", style: TextStyle(fontSize: 14)),
+        const SizedBox(height: 10),
+        _isDownloading 
+          ? Column(children: [LinearProgressIndicator(value: _progress), Text("${(_progress * 100).toStringAsFixed(1)}%")])
+          : ElevatedButton.icon(
+              onPressed: () async {
+                setState(() => _isDownloading = true);
+                await _download.downloadModel(onProgress: (p) => setState(() => _progress = p));
+                setState(() { _isDownloading = false; _isModelReady = true; });
+              },
+              icon: const Icon(Icons.download), label: const Text("تحميل النموذج الآن (1.24GB)"),
+            ),
+      ],
+    );
+  }
+
+  Widget _buildSuccessView() {
+    return Column(
+      children: [
+        const Icon(Icons.check_circle, color: Colors.green, size: 40),
+        const Text("العقل الطبي مفعل وجاهز", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        ElevatedButton(onPressed: () {}, child: const Text("فتح الدردشة الطبية")),
+      ],
     );
   }
 }
