@@ -48,6 +48,27 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // 🔴 الدالة اللي كانت ناقصة لمعالجة التحميل من الإنترنت بشكل صحيح
+  Future<void> _startDownload() async {
+    setState(() => _isDownloading = true);
+    
+    bool success = await _download.downloadModel(onProgress: (p) => setState(() => _progress = p));
+    
+    if (success) {
+      setState(() { _isDownloading = false; _isModelReady = true; });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم التحميل بنجاح! ✅")));
+      }
+    } else {
+      setState(() { _isDownloading = false; });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("فشل التحميل، يرجى التحقق من الإنترنت أو مساحة الهاتف!")),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,7 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // كارت التشخيص والروية (Vision)
+              const SizedBox(height: 50),
+              // كارت التشخيص والرؤية (Vision)
               _buildModernCard(
                 title: "فحص الجلد الذكي",
                 child: Column(
@@ -87,13 +109,14 @@ class _HomeScreenState extends State<HomeScreen> {
               
               const SizedBox(height: 20),
 
-              // كارت المساعد الطبي (التحميل)
+              // كارت المساعد الطبي (التحميل والاستيراد)
               _buildModernCard(
                 title: "المساعد الطبي (AI Chat)",
                 child: _isModelReady 
                   ? _buildSuccessView() 
                   : _buildDownloadView(),
               ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -120,22 +143,51 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // واجهة أزرار التحميل
   Widget _buildDownloadView() {
     return Column(
       children: [
         const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 40),
-        const Text("نموذج الدردشة غير موجود محلياً", style: TextStyle(fontSize: 14)),
-        const SizedBox(height: 10),
-        _isDownloading 
-          ? Column(children: [LinearProgressIndicator(value: _progress), Text("${(_progress * 100).toStringAsFixed(1)}%")])
-          : ElevatedButton.icon(
-              onPressed: () async {
-                setState(() => _isDownloading = true);
-                await _download.downloadModel(onProgress: (p) => setState(() => _progress = p));
-                setState(() { _isDownloading = false; _isModelReady = true; });
-              },
-              icon: const Icon(Icons.download), label: const Text("تحميل النموذج الآن (1.24GB)"),
-            ),
+        const Text("العقل الطبي غير موجود محلياً", style: TextStyle(fontSize: 14)),
+        const SizedBox(height: 15),
+        
+        if (_isDownloading)
+          Column(children: [
+            LinearProgressIndicator(value: _progress), 
+            const SizedBox(height: 5),
+            Text("${(_progress * 100).toStringAsFixed(1)}%")
+          ])
+        else
+          Column(
+            children: [
+              // زرار التحميل من الإنترنت
+              ElevatedButton.icon(
+                onPressed: _startDownload, // الدالة شغالة تمام هنا
+                icon: const Icon(Icons.cloud_download), 
+                label: const Text("تحميل من الإنترنت (1.24GB)"),
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 45)),
+              ),
+              const SizedBox(height: 10),
+              
+              // زرار الاستيراد من الهاتف
+              OutlinedButton.icon(
+                onPressed: () async {
+                  setState(() => _isDownloading = true);
+                  bool success = await _download.importModelFromDevice();
+                  if (success) {
+                    setState(() { _isDownloading = false; _isModelReady = true; });
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم استيراد العقل بنجاح! ✅")));
+                  } else {
+                    setState(() => _isDownloading = false);
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لم يتم الاستيراد.")));
+                  }
+                },
+                icon: const Icon(Icons.folder_copy), 
+                label: const Text("استيراد العقل من الهاتف 📁"),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 45)),
+              ),
+            ],
+          ),
       ],
     );
   }
