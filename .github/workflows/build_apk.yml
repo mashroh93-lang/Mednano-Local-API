@@ -33,11 +33,11 @@ jobs:
           # 1. إضافة صلاحية الإنترنت
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <application/g' mednano_ai/android/app/src/main/AndroidManifest.xml
           
-          # 2. زرع مكتبة PyTorch (يدعم امتداد gradle و gradle.kts)
+          # 2. زرع مكتبة PyTorch بالقوة في آخر الملف (الطريقة المضمونة)
           if [ -f mednano_ai/android/app/build.gradle.kts ]; then
-            sed -i 's/dependencies {/dependencies {\n    implementation("org.pytorch:pytorch_android_lite:1.13.0")/g' mednano_ai/android/app/build.gradle.kts
+            echo 'dependencies { implementation("org.pytorch:pytorch_android_lite:1.13.0") }' >> mednano_ai/android/app/build.gradle.kts
           else
-            sed -i 's/dependencies {/dependencies {\n    implementation "org.pytorch:pytorch_android_lite:1.13.0"/g' mednano_ai/android/app/build.gradle
+            echo 'dependencies { implementation "org.pytorch:pytorch_android_lite:1.13.0" }' >> mednano_ai/android/app/build.gradle
           fi
           
           # 3. نقل كود الكوبري (MainActivity.kt) لمكانه السري
