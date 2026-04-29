@@ -65,7 +65,8 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
-      body: Column(
+    body: SafeArea(
+      child: Column(
         children: [
           Expanded(
             child: ListView.builder(
