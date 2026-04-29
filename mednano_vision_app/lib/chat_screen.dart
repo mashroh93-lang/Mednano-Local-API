@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // المكتبة المسؤولة عن الكوبري (MethodChannel)
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -16,7 +16,7 @@ class _ChatScreenState extends State<ChatScreen> {
     {"role": "bot", "text": "مرحباً بك! أنا المساعد الطبي لـ Mednano. العقل اللغوي متصل وجاهز للتحليل."}
   ];
 
-  // 🔴 تعريف الكوبري اللي هيكلم الأندرويد (Java/Kotlin)
+  // الكوبري اللي بيكلم كود الكوتلن (MainActivity)
   static const platform = MethodChannel('mednano.ai/pytorch');
 
   bool _isTyping = false;
@@ -28,16 +28,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() {
       _messages.add({"role": "user", "text": userText});
-      _isTyping = true; // إظهار علامة التحميل
+      _isTyping = true;
       _controller.clear();
     });
 
     try {
-      // الحصول على مسار العقل (1.24GB) عشان نبعته للأندرويد
       final directory = await getApplicationSupportDirectory();
       final modelPath = "${directory.path}/mednano_edge.ptl";
 
-      // 🔴 إرسال السؤال والمسار عبر الكوبري إلى نظام الأندرويد الفعلي
+      // إرسال السؤال للأندرويد
       final String result = await platform.invokeMethod('generateText', {
         'prompt': userText,
         'modelPath': modelPath,
@@ -49,7 +48,6 @@ class _ChatScreenState extends State<ChatScreen> {
       });
 
     } on PlatformException catch (e) {
-      // لو الكوبري ملقاش كود الجافا في الأندرويد، هيطلع الإيرور ده
       setState(() {
         _messages.add({"role": "bot", "text": "⚠️ خطأ في الاتصال بالمحرك: ${e.message}"});
         _isTyping = false;
@@ -65,65 +63,67 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
-    body: SafeArea(
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(15),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final isUser = msg["role"] == "user";
-                return Align(
-                  alignment: isUser ? Alignment.centerLeft : Alignment.centerRight,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: isUser ? Colors.teal.shade100 : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5)],
+      // 🔴 الـ SafeArea اهي متركبة صح ومقفولة بأقواسها
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(15),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final msg = _messages[index];
+                  final isUser = msg["role"] == "user";
+                  return Align(
+                    alignment: isUser ? Alignment.centerLeft : Alignment.centerRight,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: isUser ? Colors.teal.shade100 : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5)],
+                      ),
+                      child: Text(msg["text"]!, style: const TextStyle(fontSize: 16)),
                     ),
-                    child: Text(msg["text"]!, style: const TextStyle(fontSize: 16)),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          if (_isTyping)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: CircularProgressIndicator(color: Colors.teal),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: InputDecoration(
-                      hintText: "اكتب سؤالك هنا...",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-                      filled: true,
-                      fillColor: Colors.white,
+            if (_isTyping)
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(color: Colors.teal),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration: InputDecoration(
+                        hintText: "اكتب سؤالك الطبي هنا...",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                CircleAvatar(
-                  radius: 25,
-                  backgroundColor: Colors.teal,
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _sendMessage,
-                  ),
-                )
-              ],
-            ),
-          )
-        ],
+                  const SizedBox(width: 10),
+                  CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.teal,
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      onPressed: _sendMessage,
+                    ),
+                  )
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
