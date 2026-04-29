@@ -32,11 +32,11 @@ jobs:
           
           # 1. إضافة صلاحية الإنترنت + طلب رامات إضافية (Large Heap)
           sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <application android:largeHeap="true"/g' mednano_ai/android/app/src/main/AndroidManifest.xml
-          # 2. زرع مكتبة PyTorch بالقوة في آخر الملف (الطريقة المضمونة)
+          # 2. زرع مكتبة PyTorch بالقوة (تم التحديث للإصدار 2.1.0 لدعم الموديلات الحديثة)
           if [ -f mednano_ai/android/app/build.gradle.kts ]; then
-            echo 'dependencies { implementation("org.pytorch:pytorch_android_lite:1.13.0") }' >> mednano_ai/android/app/build.gradle.kts
+            echo 'dependencies { implementation("org.pytorch:pytorch_android_lite:2.1.0") }' >> mednano_ai/android/app/build.gradle.kts
           else
-            echo 'dependencies { implementation "org.pytorch:pytorch_android_lite:1.13.0" }' >> mednano_ai/android/app/build.gradle
+            echo 'dependencies { implementation "org.pytorch:pytorch_android_lite:2.1.0" }' >> mednano_ai/android/app/build.gradle
           fi
           
           # 3. نقل كود الكوبري (MainActivity.kt) لمكانه السري
