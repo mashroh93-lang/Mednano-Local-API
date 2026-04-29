@@ -30,9 +30,8 @@ jobs:
           cp -r mednano_vision_app/assets mednano_ai/assets
           cp mednano_vision_app/pubspec.yaml mednano_ai/pubspec.yaml
           
-          # 1. إضافة صلاحية الإنترنت
-          sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <application/g' mednano_ai/android/app/src/main/AndroidManifest.xml
-          
+          # 1. إضافة صلاحية الإنترنت + طلب رامات إضافية (Large Heap)
+          sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <application android:largeHeap="true"/g' mednano_ai/android/app/src/main/AndroidManifest.xml
           # 2. زرع مكتبة PyTorch بالقوة في آخر الملف (الطريقة المضمونة)
           if [ -f mednano_ai/android/app/build.gradle.kts ]; then
             echo 'dependencies { implementation("org.pytorch:pytorch_android_lite:1.13.0") }' >> mednano_ai/android/app/build.gradle.kts
